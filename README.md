@@ -1,0 +1,1 @@
+# TUI built using ratatui to navigate laravel logs
