@@ -1,26 +1,28 @@
-use std::{error::Error, io, time::Duration};
+mod app;
+mod log_file_parser;
+mod log_file_watcher;
+mod ui;
+
+use std::{error::Error, io, sync::mpsc, thread};
 
 use ratatui::{
     Terminal,
     backend::{Backend, CrosstermBackend},
     crossterm::{
-        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+        event::{
+            self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind,
+        },
         execute,
         terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
     },
 };
 
-mod app;
-mod ui;
+
 use crate::{
-    app::{App, CurrentScreen},
+    app::{App, AppEvent},
+    log_file_watcher::LogFileWatcher,
     ui::ui,
 };
-
-// The duration of a frame in seconds
-// the application refreshes its UI every this amount of seconds
-// and/or every time the user sends any input
-const FRAME_TIME: u64 = 1;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -51,70 +53,67 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+    // The Central Channel
+    let (tx, rx) = mpsc::channel();
+
+    // create file watcher thread
+    let log_file_watcher = LogFileWatcher::new("./".to_string(), tx.clone());
+    log_file_watcher.start();
+
+    // create a terminal input watcher thread
+    let input_tx = tx.clone();
+    thread::spawn(move || {
+        loop {
+            let _ = input_tx.send(AppEvent::TerminalEvent(event::read().unwrap()));
+        }
+    });
+
     loop {
-        app.process_log_files("./")?;
+        // terminal.draw(|f| ui(f, app))?;
 
-        terminal.draw(|f| ui(f, app))?;
-
-        if event::poll(Duration::from_secs(FRAME_TIME))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == event::KeyEventKind::Release {
-                    // Skip events that are not KeyEventKind::Press
-                    continue;
+        // This blocks until *any* event arrives, using 0% CPU while waiting
+        match rx.recv().unwrap() {
+            AppEvent::FileCreated(name) => {
+                app.make_current_log_entries_old();
+                if let Some(log_entry) = app.log_entries.iter().find(|log_entry| log_entry.name == name) {
+                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), log_entry.offset));
+                } else {
+                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), 0));
                 }
-                if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                    return Ok(false);
+                println!("Created");
+            }
+            AppEvent::FileUpdated(name) => {
+                app.make_current_log_entries_old();
+                if let Some(log_entry) = app.log_entries.iter().find(|log_entry| log_entry.name == name) {
+                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), log_entry.offset));
+                } else {
+                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), 0));
                 }
-                match app.current_screen {
-                    CurrentScreen::NavigatingLogFiles => match key.code {
-                        KeyCode::Down => {
-                            app.select_next_log_file();
-                        },
-                        KeyCode::Up => {
-                            app.select_previous_log_file();
-                        },
-                        KeyCode::Home => {
-                            app.select_first_log_file();
-                        },
-                        KeyCode::End => {
-                            app.select_last_log_file();
+                println!("Updated");
+            }
+            AppEvent::TerminalEvent(Event::Key(key_event)) => {
+                if key_event.kind == KeyEventKind::Press {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            return Ok(false);
                         }
-                        KeyCode::Right => {
-                            app.current_screen = CurrentScreen::NavigatingLogEntries;
-                        }
-                        _ => {}
-                    },
-                    CurrentScreen::NavigatingLogEntries if key.kind == KeyEventKind::Press => match key.code {
                         KeyCode::Down => {
                             app.select_next_log_entry();
-                        },
+                        }
                         KeyCode::Up => {
                             app.select_previous_log_entry();
-                        },
+                        }
                         KeyCode::Home => {
                             app.select_first_log_entry();
-                        },
+                        }
                         KeyCode::End => {
                             app.select_last_log_entry();
-                        },
-                        KeyCode::Left => {
-                            app.current_screen = CurrentScreen::NavigatingLogFiles;
-                        },
-                        KeyCode::Right => {
-                            app.current_screen = CurrentScreen::NavigatingLogContent;
                         }
                         _ => {}
-                    },
-                    CurrentScreen::NavigatingLogContent => match key.code {
-                        KeyCode::Left => {
-                            app.current_screen = CurrentScreen::NavigatingLogEntries;
-                        },
-                        _=> {}
-                    }
-                    _ => {
                     }
                 }
             }
+            _ => {}
         }
     }
 }
