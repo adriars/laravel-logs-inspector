@@ -3,7 +3,7 @@ mod log_file_parser;
 mod log_file_watcher;
 mod ui;
 
-use std::{error::Error, io, sync::mpsc, thread};
+use std::{env, error::Error, io, path, sync::mpsc, thread};
 
 use ratatui::{
     Terminal,
@@ -53,11 +53,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+
+    // Get the parameters passed to the terminal
+    let args: Vec<String> = env::args().collect();
+    let folder_path: String;
+
+    if args.len() > 1 {
+        folder_path = args[1].clone();
+    } else {
+        folder_path = "./".to_string();
+    }
+
     // The Central Channel
     let (tx, rx) = mpsc::channel();
 
     // create file watcher thread
-    let log_file_watcher = LogFileWatcher::new("./".to_string(), tx.clone());
+    let log_file_watcher = LogFileWatcher::new(folder_path, tx.clone());
     log_file_watcher.start();
 
     // create a terminal input watcher thread
