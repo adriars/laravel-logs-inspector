@@ -9,17 +9,14 @@ use ratatui::{
     Terminal,
     backend::{Backend, CrosstermBackend},
     crossterm::{
-        event::{
-            self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind,
-        },
+        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
         execute,
         terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
     },
 };
 
-
 use crate::{
-    app::{App, AppEvent},
+    app::{App, AppEvent, LogEntry},
     log_file_watcher::LogFileWatcher,
     ui::ui,
 };
@@ -53,7 +50,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
-
     // Get the parameters passed to the terminal
     let args: Vec<String> = env::args().collect();
     let folder_path: String;
@@ -80,27 +76,45 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
     });
 
     loop {
-        // terminal.draw(|f| ui(f, app))?;
+        // Draw the TUI
+        terminal.draw(|f| ui(f, app))?;
 
         // This blocks until *any* event arrives, using 0% CPU while waiting
         match rx.recv().unwrap() {
             AppEvent::FileCreated(name) => {
                 app.make_current_log_entries_old();
-                if let Some(log_entry) = app.log_entries.iter().find(|log_entry| log_entry.name == name) {
-                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), log_entry.offset));
-                } else {
-                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), 0));
-                }
-                println!("Created");
+
+                let new_entry = log_file_parser::parse_log_file(name.into(), 0);
+
+                app.log_entries.push(new_entry);
             }
             AppEvent::FileUpdated(name) => {
                 app.make_current_log_entries_old();
-                if let Some(log_entry) = app.log_entries.iter().find(|log_entry| log_entry.name == name) {
-                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), log_entry.offset));
+                
+                // 1. Find the index of the existing entry if it exists
+                let existing_index = app.log_entries.iter().position(|le| le.name == name);
+
+                let offset = match existing_index {
+                    Some(index) => app.log_entries[index].offset,
+                    None => 0,
+                };
+
+                let content_length = match existing_index {
+                    Some(index) => app.log_entries[index].content.len(),
+                    None => 0,
+                };
+                
+                // 2. Parse the new data using the found offset
+                let new_entry = log_file_parser::parse_log_file(name.into(), offset);
+                
+                // 3. Update the array
+                if let Some(index) = existing_index {
+                    // Option A: Replace the old entry at the same position
+                    app.log_entries[index] = new_entry;
                 } else {
-                    app.log_entries.push(log_file_parser::parse_log_file(name.into(), 0));
+                    // Option B: It's truly new, so push it
+                    app.log_entries.push(new_entry);
                 }
-                println!("Updated");
             }
             AppEvent::TerminalEvent(Event::Key(key_event)) => {
                 if key_event.kind == KeyEventKind::Press {

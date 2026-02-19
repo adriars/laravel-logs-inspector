@@ -12,7 +12,11 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     // Create the layout sections.
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(12), Constraint::Fill(1)])
+        .constraints([
+            Constraint::Percentage(12),
+            Constraint::Fill(1),
+            Constraint::Percentage(12),
+        ])
         .split(frame.area());
 
     let mut log_entries_list_items = Vec::<ListItem>::new();
@@ -52,5 +56,23 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         .wrap(Wrap { trim: true });
 
         frame.render_widget(paragraph, chunks[1]);
+
+        let debug_info = Paragraph::new(format!(
+            "name: {} offset: {} content: {} content_length: {} new: {}",
+            app.log_entries[log_entry_selected_index].name,
+            app.log_entries[log_entry_selected_index].offset,
+            app.log_entries[log_entry_selected_index].content,
+            app.log_entries[log_entry_selected_index].content.len(),
+            app.log_entries[log_entry_selected_index].new
+        ))
+        .block(
+            Block::bordered()
+                .padding(Padding::new(1, 1, 1, 1))
+                .border_style(Style::default().fg(Color::LightMagenta)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+        frame.render_widget(debug_info, chunks[2]);
     }
 }

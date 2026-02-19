@@ -5,3 +5,4 @@
 *.pdb
 dist
 laravel-logs*
+test.log

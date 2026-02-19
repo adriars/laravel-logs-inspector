@@ -5,7 +5,10 @@ use std::{
 
 use crate::app::AppEvent;
 
-use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::{DataChange, ModifyKind}};
+use notify::{
+    Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+    event::{DataChange, ModifyKind},
+};
 
 pub struct LogFileWatcher {
     path: String,
@@ -40,13 +43,14 @@ impl LogFileWatcher {
                                 }
                             }
                         }
-
                         EventKind::Modify(ModifyKind::Data(_)) => {
                             for path in event.paths {
                                 if path.extension().map_or(false, |ext| ext == "log") {
                                     let name =
                                         path.file_name().unwrap().to_string_lossy().into_owned();
-                                    let _ = self.file_tx.send(AppEvent::FileUpdated(name));
+                                    if path.metadata().expect("Metadata failed").len() > 0 {
+                                        let _ = self.file_tx.send(AppEvent::FileUpdated(name));
+                                    }
                                 }
                             }
                         }

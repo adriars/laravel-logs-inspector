@@ -68,8 +68,9 @@ impl App {
     }
 
     pub fn make_current_log_entries_old(&mut self) {
-        for log_entry in &mut self.log_entries {
+        for log_entry in self.log_entries.iter_mut() {
             log_entry.new = false;
+            log_entry.content.clear();
         }
     }
 }
