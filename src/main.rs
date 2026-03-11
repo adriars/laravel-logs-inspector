@@ -64,7 +64,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
     let (tx, rx) = mpsc::channel();
 
     // create file watcher thread
-    let log_file_watcher = LogFileWatcher::new(folder_path, tx.clone());
+    let log_file_watcher = LogFileWatcher::new(folder_path.clone(), tx.clone());
     log_file_watcher.start();
 
     // create a terminal input watcher thread
@@ -84,7 +84,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
             AppEvent::FileCreated(name) => {
                 app.make_current_log_entries_old();
 
-                let new_entry = log_file_parser::parse_log_file(name.into(), 0);
+                let new_entry = log_file_parser::parse_log_file(path::Path::new(&folder_path).join(&name), 0);
 
                 app.log_entries.push(new_entry);
             }
@@ -105,7 +105,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 };
                 
                 // 2. Parse the new data using the found offset
-                let new_entry = log_file_parser::parse_log_file(name.into(), offset);
+                let new_entry = log_file_parser::parse_log_file(path::Path::new(&folder_path).join(&name), offset);
                 
                 // 3. Update the array
                 if let Some(index) = existing_index {
