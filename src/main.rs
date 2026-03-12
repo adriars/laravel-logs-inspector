@@ -98,23 +98,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     Some(index) => app.log_entries[index].offset,
                     None => 0,
                 };
-
-                let content_length = match existing_index {
-                    Some(index) => app.log_entries[index].content.len(),
-                    None => 0,
-                };
                 
                 // 2. Parse the new data using the found offset
                 let new_entry = log_file_parser::parse_log_file(path::Path::new(&folder_path).join(&name), offset);
                 
                 // 3. Update the array
-                if let Some(index) = existing_index {
-                    // Option A: Replace the old entry at the same position
-                    app.log_entries[index] = new_entry;
-                } else {
-                    // Option B: It's truly new, so push it
-                    app.log_entries.push(new_entry);
-                }
+                app.log_entries.insert(0,new_entry);
             }
             AppEvent::TerminalEvent(Event::Key(key_event)) => {
                 if key_event.kind == KeyEventKind::Press {
@@ -133,6 +122,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                         }
                         KeyCode::End => {
                             app.select_last_log_entry();
+                        }
+                        KeyCode::Char('d') => {
+                            app.toggle_debug_mode();
                         }
                         _ => {}
                     }

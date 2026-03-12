@@ -15,13 +15,13 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Percentage(12),
             Constraint::Fill(1),
-            Constraint::Percentage(12),
+            if app.debug_mode {Constraint::Percentage(12)} else {Constraint::Fill(0)},
         ])
         .split(frame.area());
 
     let mut log_entries_list_items = Vec::<ListItem>::new();
 
-    for log_entry in &app.log_entries {
+    for log_entry in app.log_entries.iter() {
         if log_entry.new {
             log_entries_list_items.push(ListItem::new(Line::from(Span::styled(
                 format!("{}", log_entry.name),
@@ -57,22 +57,24 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
         frame.render_widget(paragraph, chunks[1]);
 
-        let debug_info = Paragraph::new(format!(
-            "name: {} offset: {} content: {} content_length: {} new: {}",
-            app.log_entries[log_entry_selected_index].name,
-            app.log_entries[log_entry_selected_index].offset,
-            app.log_entries[log_entry_selected_index].content,
-            app.log_entries[log_entry_selected_index].content.len(),
-            app.log_entries[log_entry_selected_index].new
-        ))
-        .block(
-            Block::bordered()
-                .padding(Padding::new(1, 1, 1, 1))
-                .border_style(Style::default().fg(Color::LightMagenta)),
-        )
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        // Render the debug section only if the debug_mode is on (It can be activated with 'd' key)
+        if app.debug_mode {
+            let debug_info = Paragraph::new(format!(
+                "name: {} offset: {} content_length: {} new: {}",
+                app.log_entries[log_entry_selected_index].name,
+                app.log_entries[log_entry_selected_index].offset,
+                app.log_entries[log_entry_selected_index].content.len(),
+                app.log_entries[log_entry_selected_index].new
+            ))
+            .block(
+                Block::bordered()
+                    .padding(Padding::new(1, 1, 1, 1))
+                    .border_style(Style::default().fg(Color::LightMagenta)),
+            )
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true });
 
-        frame.render_widget(debug_info, chunks[2]);
+            frame.render_widget(debug_info, chunks[2]);
+        }
     }
 }

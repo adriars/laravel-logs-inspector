@@ -17,6 +17,7 @@ pub struct LogEntry {
 pub struct App {
     pub log_entries: Vec<LogEntry>,
     pub log_entries_list_state: ListState,
+    pub debug_mode: bool
 }
 
 impl App {
@@ -24,6 +25,7 @@ impl App {
         App {
             log_entries: Vec::new(),
             log_entries_list_state: ListState::default(),
+            debug_mode: false
         }
     }
 
@@ -70,7 +72,10 @@ impl App {
     pub fn make_current_log_entries_old(&mut self) {
         for log_entry in self.log_entries.iter_mut() {
             log_entry.new = false;
-            log_entry.content.clear();
         }
+    }
+
+    pub fn toggle_debug_mode(&mut self) {
+        self.debug_mode = !self.debug_mode;
     }
 }
