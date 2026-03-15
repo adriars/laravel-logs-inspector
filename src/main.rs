@@ -9,7 +9,7 @@ use ratatui::{
     Terminal,
     backend::{Backend, CrosstermBackend},
     crossterm::{
-        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
         execute,
         terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
     },
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stderr = io::stderr(); // This is a special case. Normally using stdout is fine
-    execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stderr, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
 
@@ -107,24 +107,32 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
             }
             AppEvent::TerminalEvent(Event::Key(key_event)) => {
                 if key_event.kind == KeyEventKind::Press {
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc => {
+                    match (key_event.code, key_event.modifiers) {
+                        // No modifier key
+                        (KeyCode::Char('q') | KeyCode::Esc, KeyModifiers::NONE) => {
                             return Ok(false);
                         }
-                        KeyCode::Down => {
+                        (KeyCode::Down, KeyModifiers::NONE) => {
                             app.select_next_log_entry();
                         }
-                        KeyCode::Up => {
+                        (KeyCode::Up, KeyModifiers::NONE) => {
                             app.select_previous_log_entry();
                         }
-                        KeyCode::Home => {
+                        (KeyCode::Home, KeyModifiers::NONE) => {
                             app.select_first_log_entry();
                         }
-                        KeyCode::End => {
+                        (KeyCode::End, KeyModifiers::NONE) => {
                             app.select_last_log_entry();
                         }
-                        KeyCode::Char('d') => {
+                        (KeyCode::Char('d'), KeyModifiers::NONE) => {
                             app.toggle_debug_mode();
+                        }
+                        // Shift key modifier
+                        (KeyCode::Down, KeyModifiers::SHIFT) => {
+                            app.scroll_down_paragraph();
+                        }
+                        (KeyCode::Up, KeyModifiers::SHIFT) => {
+                            app.scroll_up_paragraph();
                         }
                         _ => {}
                     }

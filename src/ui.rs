@@ -53,7 +53,8 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 .border_style(Style::default().fg(Color::LightMagenta)),
         )
         .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: true })
+        .scroll((app.paragraph_scroll.0, app.paragraph_scroll.1));
 
         frame.render_widget(paragraph, chunks[1]);
 
