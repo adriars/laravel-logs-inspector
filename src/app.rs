@@ -1,10 +1,12 @@
+use std::path::PathBuf;
+
 use ratatui::{crossterm::event::Event, widgets::ListState};
 
 use crate::app;
 
 pub enum AppEvent {
-    FileCreated(String),
-    FileUpdated(String),
+    FileCreated(PathBuf),
+    FileUpdated(PathBuf),
     TerminalEvent(Event),
 }
 

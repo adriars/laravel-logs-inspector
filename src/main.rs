@@ -3,7 +3,7 @@ mod log_file_parser;
 mod log_file_watcher;
 mod ui;
 
-use std::{env, error::Error, io, path, sync::mpsc, thread};
+use std::{env, error::Error, io, path::{self, PathBuf}, sync::mpsc, thread};
 
 use ratatui::{
     Terminal,
@@ -52,12 +52,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
     // Get the parameters passed to the terminal
     let args: Vec<String> = env::args().collect();
-    let folder_path: String;
+    let folder_path: PathBuf;
 
     if args.len() > 1 {
-        folder_path = args[1].clone();
+        // folder_path = args[1].clone();
+        let terminal_path_argument = args[1].clone();
+        folder_path = std::fs::canonicalize(terminal_path_argument.clone()).unwrap_or_else(|_| std::path::PathBuf::from(terminal_path_argument));
     } else {
-        folder_path = "./".to_string();
+        folder_path = std::fs::canonicalize("./").unwrap_or_else(|_| std::path::PathBuf::from("./"));
     }
 
     // The Central Channel
@@ -84,7 +86,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
             AppEvent::FileCreated(name) => {
                 app.make_current_log_entries_old();
 
-                let new_entry = log_file_parser::parse_log_file(path::Path::new(&folder_path).join(&name), 0);
+                let new_entry = log_file_parser::parse_log_file(name, 0);
 
                 app.log_entries.push(new_entry);
             }
@@ -100,7 +102,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 };
                 
                 // 2. Parse the new data using the found offset
-                let new_entry = log_file_parser::parse_log_file(path::Path::new(&folder_path).join(&name), offset);
+                let new_entry = log_file_parser::parse_log_file(name, offset);
                 
                 // 3. Update the array
                 app.log_entries.insert(0,new_entry);

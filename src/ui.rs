@@ -13,7 +13,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(12),
+            Constraint::Percentage(25),
             Constraint::Fill(1),
             if app.debug_mode {Constraint::Percentage(12)} else {Constraint::Fill(0)},
         ])
@@ -52,8 +52,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 .padding(Padding::new(1, 1, 1, 1))
                 .border_style(Style::default().fg(Color::LightMagenta)),
         )
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true })
+        .wrap(Wrap { trim: false })
         .scroll((app.paragraph_scroll.0, app.paragraph_scroll.1));
 
         frame.render_widget(paragraph, chunks[1]);
