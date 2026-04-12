@@ -13,7 +13,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(25),
+            Constraint::Percentage(15),
             Constraint::Fill(1),
             if app.debug_mode {Constraint::Percentage(12)} else {Constraint::Fill(0)},
         ])
