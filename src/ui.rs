@@ -24,12 +24,12 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     for log_entry in app.log_entries.iter() {
         if log_entry.new {
             log_entries_list_items.push(ListItem::new(Line::from(Span::styled(
-                format!("{}", log_entry.name),
+                format!("{}", log_entry.name.replace(&app.folder_path.to_string_lossy().into_owned(), "")),
                 Style::default().fg(Color::LightMagenta),
             ))));
         } else {
             log_entries_list_items.push(ListItem::new(Line::from(Span::styled(
-                format!("{}", log_entry.name),
+                format!("{}", log_entry.name.replace(&app.folder_path.to_string_lossy().into_owned(), "")),
                 Style::default().fg(Color::White),
             ))));
         }

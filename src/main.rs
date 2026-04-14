@@ -62,6 +62,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
         folder_path = std::fs::canonicalize("./").unwrap_or_else(|_| std::path::PathBuf::from("./"));
     }
 
+    app.folder_path = folder_path.clone();
+
     // The Central Channel
     let (tx, rx) = mpsc::channel();
 

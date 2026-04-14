@@ -18,6 +18,7 @@ pub struct LogEntry {
 }
 
 pub struct App {
+    pub folder_path: PathBuf,
     pub log_entries: Vec<LogEntry>,
     pub log_entries_list_state: ListState,
     pub paragraph_scroll: (u16, u16),
@@ -27,6 +28,7 @@ pub struct App {
 impl App {
     pub fn new() -> App {
         App {
+            folder_path: PathBuf::new(),
             log_entries: Vec::new(),
             log_entries_list_state: ListState::default(),
             paragraph_scroll: (0, 0),

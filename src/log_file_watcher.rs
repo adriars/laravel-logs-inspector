@@ -31,23 +31,19 @@ impl LogFileWatcher {
                     match event.kind {
                         EventKind::Create(_) => {
                             for path in event.paths {
-                                let relative_path =
-                                    path.strip_prefix(&self.path).unwrap_or(&path).to_path_buf();
 
                                 if path.extension().map_or(false, |ext| ext == "log") {
-                                    let _ = self.file_tx.send(AppEvent::FileCreated(relative_path));
+                                    let _ = self.file_tx.send(AppEvent::FileCreated(path));
                                 }
                             }
                         }
                         EventKind::Modify(ModifyKind::Data(_)) => {
                             for path in event.paths {
-                                let relative_path =
-                                    path.strip_prefix(&self.path).unwrap_or(&path).to_path_buf();
 
                                 if path.extension().map_or(false, |ext| ext == "log") {
                                     // Checking metadata to ensure file isn't empty
                                     if path.metadata().map(|m| m.len()).unwrap_or(0) > 0 {
-                                        let _ = self.file_tx.send(AppEvent::FileUpdated(relative_path));
+                                        let _ = self.file_tx.send(AppEvent::FileUpdated(path));
                                     }
                                 }
                             }
